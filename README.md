@@ -4,24 +4,24 @@ Implementation of triangulation matting technique described in the paper Blue Sc
 
 #### Background image 1
 
-![original]flowers-backA.jpg
+![original](flowers-backA.jpg)
 
 #### Background image 2
 
-![original]flowers-backB.jpg
+![original](flowers-backB.jpg)
 
 #### Composite image 1
 
-![original]flowers-compA.jpg
+![original](flowers-compA.jpg)
 
 #### Composite image 2
 
-![original]flowers-compB.jpg
+![original](flowers-compB.jpg)
 
 #### New background image
 
-![original]window.jpg
+![original](window.jpg)
 
 #### New composite image
 
-![original]flowers-composite.jpg
+![original](flowers-composite.jpg)
