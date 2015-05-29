@@ -9,8 +9,14 @@ from PIL import Image
 
 def matting(b1, b2, c1, c2):
     '''Computes the triangulation matting equation
-    
-       Return:
+       
+       Param:
+       b1: background image 1
+       b2: background image 2
+       c1: composite image 1
+       c2: composite image 2
+
+       Returns:
        fg: foreground image
        alpha: alpha image '''
     b1_r, b1_g, b1_b = b1[:,:,0], b1[:,:,1], b1[:,:,2]    
@@ -46,8 +52,12 @@ def matting(b1, b2, c1, c2):
     
 def multiply_alpha(alpha, b):
     '''Multiplies (1-alpha) and the background image
-    
-       Returns
+       
+       Param:
+       alpha: alpha matte image
+       b: new background image
+
+       Returns:
        c: (1-alpha) * background'''
     img_shape = b.shape
     c = np.zeros(img_shape)
