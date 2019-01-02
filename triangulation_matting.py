@@ -6,6 +6,8 @@ from scipy.misc import imread
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from PIL import Image
+import time
+
 
 def matting(b1, b2, c1, c2):
     '''Computes the triangulation matting equation
@@ -13,60 +15,34 @@ def matting(b1, b2, c1, c2):
        Param:
        b1: background image 1
        b2: background image 2
-       c1: composite image 1
-       c2: composite image 2
+       c1: composite image 1 (back + front)
+       c2: composite image 2 (back + front)
 
        Returns:
        fg: foreground image
        alpha: alpha image '''
-    b1_r, b1_g, b1_b = b1[:,:,0], b1[:,:,1], b1[:,:,2]    
-    b2_r, b2_g, b2_b = b2[:,:,0], b2[:,:,1], b2[:,:,2]    
-    c1_r, c1_g, c1_b = c1[:,:,0], c1[:,:,1], c1[:,:,2]
-    c2_r, c2_g, c2_b = c2[:,:,0], c2[:,:,1], c2[:,:,2]
+    print("[*] Start matting...")
+    time_start = time.time()
+    img_shape = b1.shape  # all images have same shape
+    H, W, C = img_shape
+    assert C == 3, "ONLY support RGB format images!"
+    B = np.concatenate([b1, b2], axis=2).reshape(H, W, 2*C, 1)  # stack along the channel axis
+    I = np.concatenate([c1, c2], axis=2).reshape(H, W, 2*C, 1)
+    R = I - B
+    A = np.zeros((H, W, 2*C, 3))
+    m = np.array([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1]])
+    A = A + m
+    A = np.concatenate([A, -B], axis=3)
     
-    img_shape = b1.shape # all images have same shape
-    fg = np.zeros(img_shape)
-    alpha = np.zeros(img_shape[:2])
+    x_pinv = np.linalg.pinv(A)
+    x_dot = np.matmul(x_pinv, R)
+    X = np.clip(x_dot, 0.0, 1.0).squeeze(axis=3)
+    fg = X[:, :, :3]
+    alpha = X[:, :, 3]
     
-    matrix = np.array([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1]])
-    
-    for i in range(img_shape[0]):
-        for j in range(img_shape[1]):
-            a = np.array([[b1_r[i,j]],
-                          [b1_g[i,j]],
-                          [b1_b[i,j]],
-                          [b2_r[i,j]],
-                          [b2_g[i,j]],
-                          [b2_b[i,j]]])
-            b = np.array([[c1_r[i,j]-b1_r[i,j]],
-                          [c1_g[i,j]-b1_g[i,j]],
-                          [c1_b[i,j]-b1_b[i,j]],
-                          [c2_r[i,j]-b2_r[i,j]],
-                          [c2_g[i,j]-b2_g[i,j]],
-                          [c2_b[i,j]-b2_b[i,j]]])
-            A = np.hstack((matrix, -1*a))
-            x = np.clip(np.dot(np.linalg.pinv(A),b), 0.0, 1.0)
-            fg[i,j] = np.array([x[0][0], x[1][0], x[2][0]])
-            alpha[i,j] = x[3]
+    print("[*] Matting completed with time elapse: {} sec".format(time.time() - time_start))
     return fg, alpha
-    
-def multiply_alpha(alpha, b):
-    '''Multiplies (1-alpha) and the background image
-       
-       Param:
-       alpha: alpha matte image
-       b: new background image
 
-       Returns:
-       c: (1-alpha) * background'''
-    img_shape = b.shape
-    c = np.zeros(img_shape)
-    for i in range(b.shape[0]):
-        for j in range(b.shape[1]):
-            # alpha image has one value for each pixel
-            # unlike the background image which has three values - r,g,b
-            c[i][j] = b[i][j]*(1.0-alpha[i][j])
-    return c
 
 if __name__ == '__main__':
     window = np.array(Image.open('window.jpg'))/255.0
@@ -78,7 +54,7 @@ if __name__ == '__main__':
     fg, alpha = matting(b1,b2,c1,c2)
     imsave('flowers-alpha.jpg', alpha, cmap=cm.gray)
     imsave('flowers-foreground.jpg', fg)
-    b = multiply_alpha(alpha, window)
+    b = (1.0 - alpha).reshape(alpha.shape[0], alpha.shape[1], 1) * window
     composite = fg + b
     plt.show(imshow(composite))
     imsave('flowers-composite.jpg', composite)
@@ -90,7 +66,7 @@ if __name__ == '__main__':
     fg, alpha = matting(b1,b2,c1,c2)
     imsave('leaves-alpha.jpg', alpha, cmap=cm.gray)
     imsave('leaves-foreground.jpg', fg)
-    b = multiply_alpha(alpha, window)
+    b = (1.0 - alpha).reshape(alpha.shape[0], alpha.shape[1], 1) * window
     composite = fg + b
     plt.show(imshow(composite))
     imsave('leaves-composite.jpg', composite)
